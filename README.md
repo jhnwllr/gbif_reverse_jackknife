@@ -3,7 +3,7 @@
 
 This project is a scala/Spark port of Arthur Chapman's reverse jackknifing approach to finding bioclimatic outliers within occurrence data. It is intended for **internal usage** within GBIF.
 
-Currently it uses bioclim data from (19 bioclimatic surfaces)[ https://www.worldclim.org/data/bioclim.html] at a 0.1 degree resolution. 
+Currently it uses bioclim data from (19 bioclimatic surfaces)[https://www.worldclim.org/data/bioclim.html] at a 0.1 degree resolution. 
 
 ## plotted examples
 
