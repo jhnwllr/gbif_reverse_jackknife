@@ -1,17 +1,17 @@
 
-reverse jackknifing for outlier detection 
+## reverse jackknifing for outlier detection 
 
-This project is a scala/Spark port of Arthur Chapman's
+This project is a scala/Spark port of Arthur Chapman's reverse jackknifing approach to finding bioclimatic outliers within occurrence data. It is intended for **internal usage** within GBIF.
 
+Currently it uses bioclim data from (19 bioclimatic surfaces)[ https://www.worldclim.org/data/bioclim.html] at a 0.1 degree resolution. 
 
-It is intended for internal usage within GBIF.  
+## plotted examples
 
-Often GBIF data is used for ecological niche modeling 
 
 bioclim 
 
 
-It is a translation from R to scala of `biogeo::rjack`. [source](https://github.com/cran/biogeo/blob/master/R/rjack.R)
+This implementation is a translation from R to scala of `biogeo::rjack`. [source](https://github.com/cran/biogeo/blob/master/R/rjack.R). It also similar to what is available in  DivaGIS.
 
 
 ```R
@@ -60,13 +60,11 @@ function (d)
 
 ```
 
+## References 
+
 Chapman, A.D. (2005) Principles and Methods of Data Cleaning - Primary Species and Species- Occurrence Data, version 1.0. Report for the Global Biodiversity Information Facility, Copenhagen.
 
 
-
-```
-
-```
 
 
 
