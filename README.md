@@ -34,7 +34,9 @@ spark2-submit --num-executors 40 --executor-cores 5 --driver-memory 8g --driver-
 
 
 
-## plotted examples
+## plotted example
+
+Here I plot an example of the results of a primate species with one outlier in Washington State. Cumulative frequency plots are to the right. Bioclimatic surface values are on the x-axis and frequency on the y-axis. Black-colored points very much to the right or left or right are outliers flagged by. I also plot the number of other surfaces flagged this point as an outlier as a little number next to the point.   
 
 ![](https://raw.githubusercontent.com/jhnwllr/gbif_reverse_jackknife/master/plots/raster_plots/8978926.jpg)
 
