@@ -3,10 +3,40 @@
 
 This project is a scala/Spark port of Arthur Chapman's reverse jackknifing approach to finding bioclimatic outliers within occurrence data. It is intended for **internal usage** within GBIF.
 
-Currently it uses bioclim data from (19 bioclimatic surfaces)[https://www.worldclim.org/data/bioclim.html] at a 0.1 degree resolution. 
+Currently it uses bioclim data from [19 bioclimatic surfaces](https://www.worldclim.org/data/bioclim.html) at a 0.1 degree resolution. 
+
+
+
+
+## run this project 
+
+## data preparations 
+
+
+
+
+
+1. Build Project
+```
+sbt package
+```
+
+2. Copy file packaged jar onto 
+```
+scp -r /cygdrive/c/Users/ftw712/Desktop/gbif_reverse_jackknife/target/scala-2.11/gbif_reverse_jackknife_2.11-0.1.jar jwaller@c5gateway-vh.gbif.org:/home/jwaller/
+```
+
+3. Run
+```
+spark2-submit --num-executors 40 --executor-cores 5 --driver-memory 8g --driver-cores 4 --executor-memory 16g gbif_reverse_jackknife_2.11-0.1.jar
+```
+
+
+
 
 ## plotted examples
 
+![](https://raw.githubusercontent.com/jhnwllr/gbif_reverse_jackknife/master/plots/raster_plots/8978926.jpg)
 
 bioclim 
 
