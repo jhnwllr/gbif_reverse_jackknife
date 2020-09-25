@@ -5,11 +5,9 @@ This project is a scala/Spark port of Arthur Chapman's **reverse jackknifing** a
 
 Currently it uses bioclim data from [19 bioclimatic surfaces](https://www.worldclim.org/data/bioclim.html) at a 0.1 degree resolution. 
 
-
-
 ## run this project 
 
-Run the [bioclim_extract.r]( https://github.com/jhnwllr/gbif_reverse_jackknife/blob/master/R/bioclim_extract.r) to create `bioclim_0.1_extract.tsv` 
+Run [bioclim_extract.r]( https://github.com/jhnwllr/gbif_reverse_jackknife/blob/master/R/bioclim_extract.r) to create `bioclim_0.1_extract.tsv` 
 
 Copy the `bioclim_0.1_extract.tsv` onto the server and put into hdfs. 
 ```
@@ -18,7 +16,7 @@ hdfs dfs -put bioclim_0.1_extract.tsv bioclim_0.1_extract.tsv
 hdfs dfs -ls
 ```
 
-1. Build Project
+1. Build project
 ```
 sbt package
 ```
@@ -28,13 +26,10 @@ sbt package
 scp -r /cygdrive/c/Users/ftw712/Desktop/gbif_reverse_jackknife/target/scala-2.11/gbif_reverse_jackknife_2.11-0.1.jar jwaller@c5gateway-vh.gbif.org:/home/jwaller/
 ```
 
-3. Run
+3. Run with spark2-submit
 ```
 spark2-submit --num-executors 40 --executor-cores 5 --driver-memory 8g --driver-cores 4 --executor-memory 16g gbif_reverse_jackknife_2.11-0.1.jar
 ```
-
-
-
 
 ## Plotted example
 
@@ -46,16 +41,10 @@ Cumulative frequency plots are to the right. Bioclimatic surface values are on t
 
 Because of multiple-comparisons, a point should not be considered a "true outlier" unless it an outlier in **> 5 surfaces**. 
 
-https://www.gbif.org/occurrence/1145339223
-Oregon Regional Primate Research Center
-
 ![](https://raw.githubusercontent.com/jhnwllr/gbif_reverse_jackknife/master/plots/raster_plots/8978926.jpg)
-
-bioclim 
 
 
 This implementation is a translation from R to scala of `biogeo::rjack`. [source](https://github.com/cran/biogeo/blob/master/R/rjack.R). It also similar to what is available in  DivaGIS.
-
 
 ```R
 
