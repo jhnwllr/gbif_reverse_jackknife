@@ -3,7 +3,7 @@
 
 This project is a scala/Spark port of Arthur Chapman's **reverse jackknifing** approach to finding bioclimatic outliers within occurrence data. It is intended for **internal usage** within GBIF.
 
-Currently it uses bioclim data from [19 bioclimatic surfaces](https://www.worldclim.org/data/bioclim.html) at a 0.1 degree resolution. 
+Currently it uses bioclim data from [19 bioclimatic surfaces](https://www.worldclim.org/data/bioclim.html) at a 0.1 degree resolution. Bioclim is only available for land, so no aquatic species could be run.  
 
 ## run this project 
 
@@ -42,6 +42,19 @@ Cumulative frequency plots are to the right. Bioclimatic surface values are on t
 Because of multiple-comparisons, a point should not be considered a "true outlier" unless it an outlier in **> 5 surfaces**. 
 
 ![](https://raw.githubusercontent.com/jhnwllr/gbif_reverse_jackknife/master/plots/raster_plots/8978926.jpg)
+
+## Stats 
+
+
+
+## Impelmentation details 
+
+1. Only includes occurrences with **hasgeospatialissues** = false
+2. Excludes basis record = **FOSSIL_SPECIMEN**, **UNKNOWN**, **LIVING_SPECIMEN**
+3. Only run on Kingdoms = **Fungi**, **Animals, **Plants** 
+4. **decimallatitude** & **decimallongitude** rounded to nearest 0.1 degrees
+5. Only unique bioclimatic values for each surface used
+6. Only specieskeys with **> 10 unique bioclimatic values** for each surface were run
 
 
 This implementation is a translation from R to scala of `biogeo::rjack` [source](https://github.com/cran/biogeo/blob/master/R/rjack.R). It also similar to what is available in  DivaGIS.
