@@ -1,7 +1,7 @@
 
 ## Reverse jackknifing for outlier detection 
 
-This project is a scala/Spark port of Arthur Chapman's **reverse jackknifing** approach to finding bioclimatic outliers within occurrence data. It is intended for **internal usage** within GBIF.
+This project is a scala/Spark port of Arthur Chapman's **reverse jackknifing** approach to finding bioclimatic outliers within occurrence data. It is intended for **internal usage** within GBIF. It runs in 25 minutes on the current cluster setup. 
 
 Currently it uses bioclim data from [19 bioclimatic surfaces](https://www.worldclim.org/data/bioclim.html) at a 0.1 degree resolution. Bioclim is only available for land, so no aquatic species could be run.  
 
@@ -45,19 +45,21 @@ Because of multiple-comparisons, a point should not be considered a "true outlie
 
 ## Stats 
 
+Around 2M occurrences get flagged with at least 1 surface (of 19) as an outlier. Around 50K occurrences have >5 five surfaces as outliers. 
 
+The current implementation runs on all terrestial **Fungi**, **Animals**, **Plants** in around 25 minutes.   
 
 ## Impelmentation details 
 
 1. Only includes occurrences with **hasgeospatialissues** = false
 2. Excludes basis record = **FOSSIL_SPECIMEN**, **UNKNOWN**, **LIVING_SPECIMEN**
-3. Only run on Kingdoms = **Fungi**, **Animals, **Plants** 
+3. Only run on Kingdoms = **Fungi**, **Animals**, **Plants** 
 4. **decimallatitude** & **decimallongitude** rounded to nearest 0.1 degrees
 5. Only unique bioclimatic values for each surface used
 6. Only specieskeys with **> 10 unique bioclimatic values** for each surface were run
 
 
-This implementation is a translation from R to scala of `biogeo::rjack` [source](https://github.com/cran/biogeo/blob/master/R/rjack.R). It also similar to what is available in  DivaGIS.
+This implementation is a translation from R to scala of `biogeo::rjack` [source](https://github.com/cran/biogeo/blob/master/R/rjack.R). It is also similar to what is available in  DivaGIS.
 
 ```R
 
@@ -104,6 +106,32 @@ function (d)
 }
 
 ```
+
+## Working with results 
+
+Since only around 2M occurrences are flagged as outliers, it is easy to export locally. 
+
+In the end, a file is created in hdfs called `rjack_outliers_export`. 
+
+```scala
+import sys.process._
+
+val save_table_name = "rjack_outliers_export"
+
+// export and copy file to right location 
+(s"hdfs dfs -ls")!
+(s"rm " + save_table_name)!
+(s"hdfs dfs -getmerge /user/jwaller/"+ save_table_name + " " + save_table_name)!
+(s"head " + save_table_name)!
+// val header = "1i " + "specieskey\tspecies_occ_count\tdatasetkey\tdataset_occ_count\tdecimallatitude\tdecimallongitude\tgbifid\tbasisofrecord\tkingdom\tclass\tkingdomkey\tclasskey\teventdate\tdatasetname\tdate"
+val header = "1i " + df_export.columns.toSeq.mkString("""\t""")
+Seq("sed","-i",header,save_table_name).!
+(s"rm /mnt/auto/misc/download.gbif.org/custom_download/jwaller/" + save_table_name)!
+(s"ls -lh /mnt/auto/misc/download.gbif.org/custom_download/jwaller/")!
+(s"cp /home/jwaller/" + save_table_name + " /mnt/auto/misc/download.gbif.org/custom_download/jwaller/" + save_table_name)!
+
+```
+
 
 ## References 
 
