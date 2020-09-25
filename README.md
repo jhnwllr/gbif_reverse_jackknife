@@ -44,7 +44,7 @@ Because of multiple-comparisons, a point should not be considered a "true outlie
 ![](https://raw.githubusercontent.com/jhnwllr/gbif_reverse_jackknife/master/plots/raster_plots/8978926.jpg)
 
 
-This implementation is a translation from R to scala of `biogeo::rjack`. [source](https://github.com/cran/biogeo/blob/master/R/rjack.R). It also similar to what is available in  DivaGIS.
+This implementation is a translation from R to scala of `biogeo::rjack` [source](https://github.com/cran/biogeo/blob/master/R/rjack.R). It also similar to what is available in  DivaGIS.
 
 ```R
 
