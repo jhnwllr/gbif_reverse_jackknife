@@ -120,6 +120,12 @@ import sys.process._
 
 val save_table_name = "rjack_outliers_export"
 
+val df_export = spark.read.
+option("sep", "\t").
+option("header", "true").
+option("inferSchema", "true").
+csv(save_temp_name)
+
 // export and copy file to right location 
 (s"hdfs dfs -ls")!
 (s"rm " + save_table_name)!
