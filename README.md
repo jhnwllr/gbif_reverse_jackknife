@@ -124,7 +124,7 @@ val df_export = spark.read.
 option("sep", "\t").
 option("header", "true").
 option("inferSchema", "true").
-csv(save_temp_name)
+csv(save_table_name)
 
 // export and copy file to right location 
 (s"hdfs dfs -ls")!
