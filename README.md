@@ -54,7 +54,7 @@ The current implementation runs on all terrestial **Fungi**, **Animals**, **Plan
 ## Impelmentation details 
 
 1. Only includes occurrences with **hasgeospatialissues** = false
-2. Excludes basis record = **FOSSIL_SPECIMEN**, **UNKNOWN**, **LIVING_SPECIMEN**
+2. **Excludes** basis record = **FOSSIL_SPECIMEN**, **UNKNOWN**, **LIVING_SPECIMEN**
 3. Only run on Kingdoms = **Fungi**, **Animals**, **Plants** 
 4. **decimallatitude** & **decimallongitude** rounded to nearest 0.1 degrees
 5. Only unique bioclimatic values for each surface used
