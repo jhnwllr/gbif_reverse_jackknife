@@ -9,14 +9,14 @@ Currently it uses bioclim data from [19 bioclimatic surfaces](https://www.worldc
 
 ## run this project 
 
-Run the [bioclim_extract.r]( https://github.com/jhnwllr/gbif_reverse_jackknife/blob/master/R/bioclim_extract.r) `bioclim_0.1_extract.tsv` 
+Run the [bioclim_extract.r]( https://github.com/jhnwllr/gbif_reverse_jackknife/blob/master/R/bioclim_extract.r) to create `bioclim_0.1_extract.tsv` 
 
-
+Copy the `bioclim_0.1_extract.tsv` onto the server and put into hdfs. 
 ```
-
+scp -r /cygdrive/c/Users/ftw712/Desktop/gbif_reverse_jackknife/data/bioclim_0.1_extract.tsv jwaller@c5gateway-vh.gbif.org:/home/jwaller/
+hdfs dfs -put bioclim_0.1_extract.tsv bioclim_0.1_extract.tsv
+hdfs dfs -ls
 ```
-
-
 
 1. Build Project
 ```
@@ -40,11 +40,11 @@ spark2-submit --num-executors 40 --executor-cores 5 --driver-memory 8g --driver-
 
 Here I plot an example of the results of a primate species with one **outlier** in Oregon State.
 
-[The point(s)](https://www.gbif.org/occurrence/1145339223) occur(s) at he Oregon Regional Primate Research Center. 
+[The point(s)](https://www.gbif.org/occurrence/1145339223) occur(s) at the Oregon Regional Primate Research Center. 
 
 Cumulative frequency plots are to the right. Bioclimatic surface values are on the x-axis and frequency on the y-axis. Black-colored points very much to the right or left or right are outliers. I also write the number of other surfaces that flagged this point as an outlier as a little number next to the point. 
 
-Because of multiple-comparisons, a point should not be considered a "true outlier" unless it an outlier in > 5 surfaces. 
+Because of multiple-comparisons, a point should not be considered a "true outlier" unless it an outlier in **> 5 surfaces**. 
 
 https://www.gbif.org/occurrence/1145339223
 Oregon Regional Primate Research Center
