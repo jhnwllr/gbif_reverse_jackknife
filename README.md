@@ -21,7 +21,7 @@ hdfs dfs -ls
 sbt package
 ```
 
-2. Copy file packaged jar onto 
+2. Copy packaged jar onto 
 ```
 scp -r /cygdrive/c/Users/ftw712/Desktop/gbif_reverse_jackknife/target/scala-2.11/gbif_reverse_jackknife_2.11-0.1.jar jwaller@c5gateway-vh.gbif.org:/home/jwaller/
 ```
