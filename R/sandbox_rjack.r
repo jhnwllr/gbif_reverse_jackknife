@@ -1,3 +1,525 @@
+library(dplyr)
+
+path = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/data/"
+
+# extracted_table = "bioclim_lagomorpha_export.tsv"
+extracted_table = "bioclim_pinaceae_export.tsv"
+# extracted_table = "bioclim_primates_export.tsv"
+# "bioclim_primates_export.tsv"
+
+d = data.table::fread(paste0(path,extracted_table)) 
+
+d %>% filter(gbifid == 1699352106) %>% 
+select(rounded_decimallongitude,rounded_decimallatitude,bio4) 
+
+
+
+ 
+select(rounded_decimallongitude,rounded_decimallatitude,bio4) 
+
+
+d %>% glimpse()
+
+# d$rounded_decimallatitude %>% unique()
+# d$rounded_decimallongitude %>% unique()
+
+if(FALSE) {
+# check why examples drop points from map 
+
+library(raster)
+library(dplyr) # always dplyr after raster
+library(sp)
+library(purrr)
+
+if(TRUE) { # hide bio data tribble
+bio_data = tibble::tribble(~bio_var,~long_name,
+"bio1","Annual Mean Temperature",
+"bio2","Mean Diurnal Range",
+"bio3","Isothermality (bio2/bio7) (×100)",
+"bio4","Temperature Seasonality",
+"bio5","Max Temperature of Warmest Month",
+"bio6","Min Temperature of Coldest Month",
+"bio7","Temperature Annual Range (bio5-bio6)",
+"bio8","Mean Temperature of Wettest Quarter",
+"bio9","Mean Temperature of Driest Quarter",
+"bio10","Mean Temperature of Warmest Quarter",
+"bio11","Mean Temperature of Coldest Quarter",
+"bio12","Annual Precipitation",
+"bio13","Precipitation of Wettest Month",
+"bio14","Precipitation of Driest Month",
+"bio15","Precipitation Seasonality",
+"bio16","Precipitation of Wettest Quarter",
+"bio17","Precipitation of Driest Quarter",
+"bio18","Precipitation of Warmest Quarter",
+"bio19","Precipitation of Coldest Quarter")
+}
+
+path = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/data/"
+
+dbscan_outliers = data.table::fread("C:/Users/ftw712/Desktop/gbif_geographic_outliers/data/dbscan_outliers/dbscan_outliers_export.tsv") 
+
+# filter(familykey == 3925) %>%
+rjack_outliers = data.table::fread(paste0(path,"rjack_outliers_export.tsv")) %>%
+filter(orderkey == 640) %>%
+rename_at(vars(paste0("bio",1:19)), ~ paste0("outlier",1:19)) %>%
+select("gbifid","specieskey",contains("bio"),contains("outlier")) %>% 
+filter(n_bioclim_outliers >= 5) %>% 
+glimpse()
+
+specieskey_with_outlier = rjack_outliers %>% 
+pull(specieskey) %>% 
+unique() %>% 
+nth(11)
+
+specieskey_with_outlier = 5284989
+
+# get outliers ids 
+dbscan_outlier_gbifid = dbscan_outliers %>%
+filter(specieskey %in% !!specieskey_with_outlier) %>%
+pull(gbifid) 
+
+rjack_outlier_gbifid = rjack_outliers %>%
+filter(specieskey %in% !!specieskey_with_outlier) %>%
+pull(gbifid)
+
+# extracted_table = "bioclim_lagomorpha_export.tsv"
+extracted_table = "bioclim_pinaceae_export.tsv"
+# extracted_table = "bioclim_primates_export.tsv"
+# "bioclim_primates_export.tsv"
+
+d = data.table::fread(paste0(path,extracted_table)) %>%
+filter(specieskey %in% specieskey_with_outlier) %>%
+mutate(rjack_outlier = gbifid %in% !!rjack_outlier_gbifid) %>% 
+mutate(dbscan_outlier = gbifid %in% !!dbscan_outlier_gbifid) %>% 
+merge(rjack_outliers,id="gbifid",all.x=TRUE) %>%
+arrange(-n_bioclim_outliers) %>% 
+glimpse()
+
+print(" ---- focal taxa ---- ")
+focal_class = d %>% pull(class) %>% unique()
+focal_order = d %>% pull(order_) %>% unique()
+focal_species = d %>% pull(species) %>% unique()
+focal_species_key = d %>% pull(specieskey) %>% unique()
+outliers = rjack_outlier_gbifid
+
+bio_d = d %>% 
+select(contains("bio"),
+gbifid,
+rounded_decimallatitude,
+rounded_decimallongitude,
+-n_bioclim_outliers,
+-decimallatitude_bioclim,
+-decimallongitude_bioclim,
+-dbscan_outlier,
+-rjack_outlier) %>%
+tidyr::pivot_longer(cols=contains("bio"),names_to="bio_var",values_to="bio_value") %>%
+mutate(id=paste0(bio_var,"_",bio_value)) %>%
+glimpse()
+# na.omit() %>% 
+
+bio_d = bio_d %>% filter(gbifid == 1699352106) %>% 
+select(rounded_decimallongitude,rounded_decimallatitude,bio_value) 
+
+bio_d
+
+d %>% filter(gbifid == 1699352106) %>% 
+select(rounded_decimallongitude,rounded_decimallatitude) 
+
+
+# coords = bio_d %>%
+# select(rounded_decimallongitude,rounded_decimallatitude) 
+
+# r = readRDS("C:/Users/ftw712/Desktop/worldclim.rda")
+# points = SpatialPoints(coords,proj4string=r@crs)
+
+# extract(r,points)
+
+
+# pdf("C:/Users/ftw712/Desktop/plot.pdf")
+# plot(r[[1]])
+# plot(points,add=TRUE)
+# dev.off()
+
+ 
+outlier_d = d %>% 
+select(contains("outlier"),
+-n_bioclim_outliers,
+-decimallatitude_bioclim,
+-decimallongitude_bioclim,
+-dbscan_outlier,
+-rjack_outlier) %>% 
+tidyr::pivot_longer(cols=contains("outlier"),names_to="outlier_var",values_to="outlier_value") %>%
+mutate(outlier_var = stringr::str_replace_all(outlier_var,"outlier","bio")) %>%
+na.omit() %>% 
+mutate(id=paste0(outlier_var,"_",outlier_value)) %>%
+glimpse()
+
+print("here")
+
+d = merge(bio_d,outlier_d,id="id",all.x=TRUE) %>%
+mutate(is_outlier = !is.na(outlier_value)) %>%
+select(
+gbifid,
+lat = rounded_decimallatitude,
+lon = rounded_decimallongitude,
+bio_var,
+bio_value,
+outlier_var,
+outlier_value,
+is_outlier
+) %>%
+group_by(bio_var) %>% 
+mutate(any_outlier = any(is_outlier)) %>%
+ungroup() %>% 
+filter(any_outlier) %>% 
+glimpse()
+
+
+d_cum_freq = d %>% 
+group_by(lat,lon,bio_var,bio_value,is_outlier) %>%
+summarise(freq = n()) %>%
+arrange(bio_var,bio_value) %>%
+ungroup() %>%
+group_by(bio_var) %>% 
+mutate(cum_freq = cumsum(freq)) %>% 
+group_by(bio_var) %>% 
+mutate(any_outlier = any(is_outlier)) %>%
+filter(any_outlier) %>% 
+merge(bio_data,id=bio_var,all.x=TRUE) %>%
+mutate(bio_num = as.numeric(stringr::str_replace_all(bio_var,"bio",""))) %>% 
+mutate(long_name=paste0(bio_var,"-",long_name)) %>% 
+mutate(long_name=forcats::fct_reorder(long_name,bio_num)) %>%
+mutate(id=paste0(lat,"_",lon)) 
+ 
+n_outliers = d %>%  
+select(bio_var,lat,lon,is_outlier) %>%
+unique() %>%
+group_by(lat,lon) %>% 
+summarise(n_outliers=sum(is_outlier)) %>%
+ungroup() %>% 
+mutate(id=paste0(lat,"_",lon)) %>%
+select(id,n_outliers) 
+
+d_cum_freq = merge(d_cum_freq,n_outliers,id="id",all.x=TRUE) %>% 
+mutate(n_outliers = as.character(n_outliers)) %>%
+mutate(n_outliers = stringr::str_replace_all(n_outliers,"0","")) 
+
+print(" ---- starting plots ---- ")
+
+path = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/data/"
+# getData('worldclim', var='bio', res=10,path=path) %>% 
+# saveRDS(paste0(path,"worldclim.rda"))
+
+r = readRDS(paste0(path,"worldclim.rda"))
+
+library(ggplot2)
+library(patchwork)
+
+bio_vars_with_outliers = d %>% 
+pull(bio_var) %>% 
+unique() %>%
+stringr::str_replace_all("bio","") %>%
+as.numeric() %>%
+sort()
+
+plot_list = bio_vars_with_outliers %>%
+map(~ {
+r_df = as(r[[.x]], "SpatialPixelsDataFrame") %>% 
+as.data.frame() %>%
+tidyr::pivot_longer(cols=contains("bio"),names_to="bio_var") %>% 
+merge(bio_data,id="bio_var") 
+
+print(.x)
+
+df_points = d %>% 
+filter(bio_var == paste0("bio",.x))
+
+max_x = max(df_points$lon) + 10
+min_x = min(df_points$lon) - 10 
+max_y = max(df_points$lat) + 10
+min_y = min(df_points$lat) - 10
+
+p_raster = ggplot(r_df,aes(x,y)) +
+geom_raster(aes(fill=value))+
+scale_fill_gradientn(colours=c("brown","red","yellow","darkgreen","green"))+
+coord_equal() + 
+geom_point(data=df_points,aes(lon,lat),color="white",size=2.5) + 
+geom_point(data=df_points,aes(lon,lat,color=is_outlier),size=1) + 
+scale_colour_manual(values = c("gray","black")) +
+theme_bw() + 
+facet_wrap(~bio_var,ncol=1) + 
+theme(legend.position="none") +
+theme(plot.margin = margin(0, 0, 0, 0)) +
+scale_y_continuous(limits = c(min_y, max_y)) +
+scale_x_continuous(limits = c(min_x, max_x)) + 
+theme(strip.background = element_rect(fill="#f9f9f9")) +
+xlab("") +
+ylab("") 
+
+df_cum_freq = d_cum_freq %>% 
+filter(bio_var == paste0("bio",.x))
+
+# geom_text() +
+p_cum_freq = ggplot(df_cum_freq,aes(bio_value,cum_freq,label=n_outliers)) + 
+geom_point(aes(color=is_outlier),size=3) + 
+geom_text(hjust = -1) +
+facet_wrap(~long_name,scales="free",ncol=2) + 
+theme_bw() + 
+theme(legend.position="top") + 
+theme(strip.background = element_rect(fill="#f9f9f9")) +
+theme(strip.text=element_text(face="bold")) + 
+scale_color_manual(values=c("gray","black")) + 
+theme(plot.margin = margin(0, 0, 0, 0)) +
+ylab("") + 
+xlab("") + 
+labs(
+caption = paste0(focal_class," - ",focal_order," - ",focal_species,"\n"," specieskey=", focal_species_key,"\n","outlier gbifids: ",paste(outliers,collapse=" "))
+) +
+guides(color=guide_legend(title="Outlier")) 
+
+out = list(p_raster,p_cum_freq)
+
+}) %>%
+flatten()
+
+
+p = wrap_plots(plot_list,ncol=2)
+
+save_dir = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/plots/raster_plots/"
+gbifapi::save_ggplot_formats(p,save_dir,specieskey_with_outlier,height=4*length(plot_list)/2,width=7.5,formats=c("pdf","jpg"))
+
+}
+
+if(FALSE) { # make biogeo example for blog post
+
+library(tibble)
+library(raster)
+library(dplyr) # load dplyr after raster to avoid select conflict
+library(sp)
+library(rgbif)
+library(biogeo)
+
+# get data from worldclim
+path = "C:/Users/ftw712/Desktop/" # set a path to somewhere to save the data
+r = getData('worldclim', var='bio', res=10,path=path) 
+
+# get data from GBIF
+occ_data = occ_search(
+taxonKey = 5284989,
+limit = 2000,
+hasCoordinate = TRUE,
+hasGeospatialIssue = FALSE,
+country = "US",
+)$data %>%
+filter(
+coordinateUncertaintyInMeters < 1000 | # filter with high uncertainty
+is.na(coordinateUncertaintyInMeters)) %>%  
+filter(basisOfRecord == "PRESERVED_SPECIMEN") %>% # Let's only consider other specimens
+mutate(row_number = row_number()) %>%
+select(row_number,key,scientificName,decimalLatitude,decimalLongitude) %>%
+glimpse() 
+
+coords = occ_data %>%
+select(decimalLongitude,decimalLatitude) 
+
+points = SpatialPointsDataFrame(coords,data=occ_data,proj4string=r@crs)
+
+values = extract(r,points) %>%
+as.data.frame() %>%
+`/`(10) %>% # divide by 10 to get temp in C
+mutate(row_number = occ_data$row_number) %>%
+na.omit() 
+
+# reverse jackknife from biogeo 
+# this function returns the row_number of the outlier 
+outlier_index = rjack(values$bio4 ) 
+
+# merge back with original occ_data
+outliers = values %>%
+select(bio4,row_number) %>%
+mutate(rjack_outlier = row_number %in% outlier_index) %>%
+filter(rjack_outlier) %>%
+merge(occ_data,id="row_number") 
+
+outliers # which points where flagged as outliers 
+
+# this outlier is centroid of the USA
+# https://www.gbif.org/occurrence/1701728186
+
+}
+
+
+if(FALSE) { # make machine tag for rjack 
+
+library(dplyr)
+library(purrr)
+
+load("C:/Users/ftw712/Desktop/griddedDatasets/authentication.rda")
+ls()
+
+path = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/data/"
+
+L = data.table::fread(paste0(path,"rjack_outliers_export.tsv")) %>%
+filter(n_bioclim_outliers >= 5) %>%
+select(datasetkey,gbifid) %>% 
+mutate(gbifid=as.character(gbifid)) %>% 
+group_by(datasetkey) %>%
+summarise(gbifid = jsonlite::toJSON(gbifid,auto_unbox=TRUE)) %>% 
+slice(1) %>%
+glimpse()
+
+# pull(gbifid) %>%
+# jsonlite::fromJSON() %>%
+# %>%
+# purrr::transpose() %>% 
+# map(~ .x[2:length(.)] %>% jsonlite::toJSON(auto_unbox=TRUE)) %>%
+# glimpse()
+
+# L %>% 
+# map(~ length(.x$gbifid)) %>%
+# jsonlite::toJSON(auto_unbox=TRUE) 
+
+# library(gbifMachineTagger)
+
+# L %>%  
+# map(~  
+# createMachineTag(
+# datasetkey=.x$datasetkey,
+# namespace="rjackOutliersInDataset.jwaller.gbif.org",
+# name="rjackOutliers",
+# value=.x$gbifid,
+# embedValueList=FALSE,
+# user = authentication$user,
+# password = authentication$password,
+# api="http://api.gbif-uat.org/v1/dataset/")
+# )
+
+
+# %>%
+# jsonlite::fromJSON()
+
+
+# getMachineTagData("griddedDataSet.jwaller.gbif.org") 
+
+# getMachineTagData("rjackOutliersInDataset.jwaller.gbif.org",api="http://api.gbif-uat.org/v1/dataset?")
+
+ # %>% 
+# jsonValuesToColumns() # no nested json 
+
+
+# select(specieskey,basisofrecord,rounded_decimallatitude,rounded_decimallongitude)
+}
+
+if(FALSE) { # nick porch example 
+
+library(dplyr)
+
+path = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/data/"
+
+# filter(n_bioclim_outliers >= 5) %>%
+# rjack_outliers = data.table::fread(paste0(path,"rjack_outliers_export.tsv")) %>%
+# glimpse() %>% 
+# pull(gbifid) %>%
+# as.character()
+
+# d = readr::read_tsv(paste0(path,"Onychophora.csv")) %>%
+# glimpse() %>%
+# mutate(gbifid = as.character(gbifID)) %>%
+# mutate(rjack_outlier = gbifid %in% !!rjack_outliers) %>%
+# select(rjack_outlier,decimalLatitude,decimalLongitude) %>%
+# unique() %>% 
+# saveRDS("C:/Users/ftw712/Desktop/d.rda")
+
+df_points = readRDS("C:/Users/ftw712/Desktop/d.rda") %>%
+mutate(lat = decimalLatitude) %>%
+mutate(lon = decimalLongitude) %>%
+glimpse()
+
+library(dplyr)
+library(raster)
+
+path = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/data/"
+# getData('worldclim', var='bio', res=10,path=path) %>% 
+# saveRDS(paste0(path,"worldclim.rda"))
+
+r = readRDS(paste0(path,"worldclim.rda"))
+
+r_df = as(r[[12]], "SpatialPixelsDataFrame") %>% 
+as.data.frame() %>%
+tidyr::pivot_longer(cols=contains("bio"),names_to="bio_var") 
+
+max_x = max(df_points$lon) + 2
+min_x = min(df_points$lon) - 2 
+max_y = max(df_points$lat) + 2
+min_y = min(df_points$lat) - 2
+
+library(ggplot2)
+p = ggplot(r_df,aes(x,y)) +
+geom_raster(aes(fill=value))+
+scale_fill_gradientn(colours=c("brown","red","yellow","darkgreen","green"))+
+geom_point(data=df_points,aes(lon,lat),color="#f5f2d0",size=2.5) + 
+geom_point(data=df_points,aes(lon,lat,color=rjack_outlier),size=1) + 
+scale_colour_manual(values = c("gray","black")) +
+coord_equal() +
+theme_void() +
+theme(legend.position="none") +
+scale_x_continuous(limits = c(min_x, max_x)) + 
+scale_y_continuous(limits = c(min_y, max_y)) 
+
+# + 
+
+# + 
+# facet_wrap(~bio_var,ncol=1) + 
+# theme(plot.margin = margin(0, 0, 0, 0)) +
+# theme(strip.background = element_rect(fill="#f9f9f9")) +
+# xlab("") +
+# ylab("") 
+
+save_dir = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/plots/"
+gbifapi::save_ggplot_formats(p,save_dir,"nick_porch_plot",height=4,width=7,formats=c("pdf","jpg"))
+}
+
+if(FALSE) { # make pure pretty raster plots fro blog post 
+
+library(dplyr)
+library(raster)
+
+path = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/data/"
+# getData('worldclim', var='bio', res=10,path=path) %>% 
+# saveRDS(paste0(path,"worldclim.rda"))
+
+r = readRDS(paste0(path,"worldclim.rda"))
+
+r_df = as(r[[1]], "SpatialPixelsDataFrame") %>% 
+as.data.frame() %>%
+tidyr::pivot_longer(cols=contains("bio"),names_to="bio_var") 
+
+library(ggplot2)
+p = ggplot(r_df,aes(x,y)) +
+geom_raster(aes(fill=value))+
+scale_fill_gradientn(colours=c("brown","red","yellow","darkgreen","green"))+
+coord_equal() +
+theme_void() +
+theme(legend.position="none") 
+
+# + 
+# geom_point(data=df_points,aes(lon,lat),color="white",size=2.5) + 
+# geom_point(data=df_points,aes(lon,lat,color=is_outlier),size=1) + 
+# scale_colour_manual(values = c("gray","black")) +
+
+# + 
+# facet_wrap(~bio_var,ncol=1) + 
+# theme(plot.margin = margin(0, 0, 0, 0)) +
+# scale_x_continuous(limits = c(min_x, max_x)) + 
+# scale_y_continuous(limits = c(min_y, max_y)) +
+# theme(strip.background = element_rect(fill="#f9f9f9")) +
+# xlab("") +
+# ylab("") 
+
+save_dir = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/plots/"
+gbifapi::save_ggplot_formats(p,save_dir,"surface_plot",height=4,width=7,formats=c("pdf","jpg"))
+
+}
 
 if(FALSE) { # most common basis of record for rjack outliers 
 
@@ -12,16 +534,26 @@ group_by(basisofrecord) %>%
 count() %>%
 ungroup() %>% 
 arrange(-n) %>% 
+mutate(basisofrecord = tolower(basisofrecord)) %>%
+mutate(basisofrecord = stringr::str_replace_all(basisofrecord,"_"," ")) %>%
+mutate(basisofrecord = forcats::fct_reorder(basisofrecord,n)) %>%
 glimpse() 
 
-  # basisofrecord           n
-  # <chr>               <int>
-# 1 PRESERVED_SPECIMEN  37 241
-# 2 HUMAN_OBSERVATION   13 601
-# 3 MATERIAL_SAMPLE      1 206
-# 4 MACHINE_OBSERVATION    111
-# 5 OBSERVATION             72
-# 6 LITERATURE              14
+library(ggplot2)
+
+p = ggplot(d,aes(basisofrecord,n)) +
+geom_col(stat="identity",fill="#4B9E46") + 
+coord_flip() + 
+xlab("") + 
+ylab("number of outliers") +
+theme_bw() +
+theme(axis.text.y=element_text(face="plain",size=15,color="#535362")) +
+theme(axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 5, l = 0), size = 11, face="plain")) +
+labs(caption=">5 climate surfaces flagged as outliers")
+
+save_dir = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/plots/"
+gbifapi::save_ggplot_formats(p,save_dir,"basisofrecord_barplot",height=4,width=6,formats=c("pdf","jpg","svg"))
+
 }
 
 if(FALSE) { # make make of rjack outlier locations 
@@ -121,7 +653,7 @@ arrange(-n)
 # glimpse()
 }
 
-# if(FALSE) { # combine cumfreq + raster plot
+if(FALSE) { # combine cumfreq + raster plot
 
 library(raster)
 library(dplyr) # always dplyr after raster
@@ -157,7 +689,7 @@ dbscan_outliers = data.table::fread("C:/Users/ftw712/Desktop/gbif_geographic_out
 
 # filter(familykey == 3925) %>%
 rjack_outliers = data.table::fread(paste0(path,"rjack_outliers_export.tsv")) %>%
-filter(orderkey == 798) %>%
+filter(orderkey == 640) %>%
 rename_at(vars(paste0("bio",1:19)), ~ paste0("outlier",1:19)) %>%
 select("gbifid","specieskey",contains("bio"),contains("outlier")) %>% 
 filter(n_bioclim_outliers >= 5) %>% 
@@ -168,7 +700,7 @@ pull(specieskey) %>%
 unique() %>% 
 nth(11)
 
-specieskey_with_outlier
+specieskey_with_outlier = 5285635
 
 # get outliers ids 
 dbscan_outlier_gbifid = dbscan_outliers %>%
@@ -180,8 +712,8 @@ filter(specieskey %in% !!specieskey_with_outlier) %>%
 pull(gbifid)
 
 # extracted_table = "bioclim_lagomorpha_export.tsv"
-# extracted_table = "bioclim_pinaceae_export.tsv"
-extracted_table = "bioclim_primates_export.tsv"
+extracted_table = "bioclim_pinaceae_export.tsv"
+# extracted_table = "bioclim_primates_export.tsv"
 # "bioclim_primates_export.tsv"
 
 d = data.table::fread(paste0(path,extracted_table)) %>%
@@ -273,7 +805,6 @@ ungroup() %>%
 mutate(id=paste0(lat,"_",lon)) %>%
 select(id,n_outliers) 
 
-
 d_cum_freq = merge(d_cum_freq,n_outliers,id="id",all.x=TRUE) %>% 
 mutate(n_outliers = as.character(n_outliers)) %>%
 mutate(n_outliers = stringr::str_replace_all(n_outliers,"0","")) 
@@ -324,8 +855,8 @@ theme_bw() +
 facet_wrap(~bio_var,ncol=1) + 
 theme(legend.position="none") +
 theme(plot.margin = margin(0, 0, 0, 0)) +
-scale_x_continuous(limits = c(min_x, max_x)) + 
 scale_y_continuous(limits = c(min_y, max_y)) +
+scale_x_continuous(limits = c(min_x, max_x)) + 
 theme(strip.background = element_rect(fill="#f9f9f9")) +
 xlab("") +
 ylab("") 
@@ -362,7 +893,7 @@ p = wrap_plots(plot_list,ncol=2)
 save_dir = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/plots/raster_plots/"
 gbifapi::save_ggplot_formats(p,save_dir,specieskey_with_outlier,height=4*length(plot_list)/2,width=7.5,formats=c("pdf","jpg"))
 
-# }
+}
 
 if(FALSE) { # facet wrapped rasters 
 

@@ -15,31 +15,31 @@ res = 0.1
 lat = seq(-90,90,res)
 lon = rep(seq(-180,180,res),each=length(lat))
 
-coords = data.frame(lon,lat) 
+specify_decimal = function(x, k) trimws(format(round(x, k), nsmall=k))
 
-points = SpatialPoints(coords, proj4string = r@crs)
+# avoid rounding issues because we will merge by decimal later
+lat_text = specify_decimal(lat,1)
+lon_text = specify_decimal(lon,1)
+
+coords = data.frame(lon,lat,lat_text,lon_text,stringsAsFactors=FALSE) 
+
+points = SpatialPoints(coords[c("lon","lat")],proj4string = r@crs)
 
 values = extract(r,points) %>%
 as.data.frame() %>%
 `/`(10) %>%
-mutate(decimallatitude = coords$lat) %>%
-mutate(decimallongitude = coords$lon) %>%
+mutate(decimallatitude = coords$lat_text) %>%
+mutate(decimallongitude = coords$lon_text) %>%
 na.omit() %>% 
 glimpse()
-
-# pca = princomp(values[paste0("bio",1:19)], cor = TRUE)$scores %>% 
-# as.data.frame() %>%
-# janitor::clean_names() %>%  
-# select(comp_1,comp_2,comp_3,comp_4) %>% 
-# glimpse()
-# cbind(pca) %>%
 
 d = values %>% 
 select(decimallatitude,decimallongitude,everything()) %>%
 glimpse() %>% 
 readr::write_tsv(paste0(path,paste0("bioclim_",res,"_extract.tsv")))
 
-
+if(FALSE) {
+}
 # scp -r /cygdrive/c/Users/ftw712/Desktop/gbif_reverse_jackknife/data/bioclim_0.1_extract.tsv jwaller@c4gateway-vh.gbif.org:/home/jwaller/
 # scp -r /cygdrive/c/Users/ftw712/Desktop/gbif_reverse_jackknife/data/bioclim_0.1_extract.tsv jwaller@c5gateway-vh.gbif.org:/home/jwaller/
 # hdfs dfs -put bioclim_0.1_extract.tsv bioclim_0.1_extract.tsv
