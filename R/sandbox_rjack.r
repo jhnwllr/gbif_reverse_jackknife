@@ -1,30 +1,5 @@
-library(dplyr)
 
-path = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/data/"
-
-# extracted_table = "bioclim_lagomorpha_export.tsv"
-extracted_table = "bioclim_pinaceae_export.tsv"
-# extracted_table = "bioclim_primates_export.tsv"
-# "bioclim_primates_export.tsv"
-
-d = data.table::fread(paste0(path,extracted_table)) 
-
-d %>% filter(gbifid == 1699352106) %>% 
-select(rounded_decimallongitude,rounded_decimallatitude,bio4) 
-
-
-
- 
-select(rounded_decimallongitude,rounded_decimallatitude,bio4) 
-
-
-d %>% glimpse()
-
-# d$rounded_decimallatitude %>% unique()
-# d$rounded_decimallongitude %>% unique()
-
-if(FALSE) {
-# check why examples drop points from map 
+if(FALSE) { # check why examples drop points from map 
 
 library(raster)
 library(dplyr) # always dplyr after raster
@@ -521,12 +496,12 @@ gbifapi::save_ggplot_formats(p,save_dir,"surface_plot",height=4,width=7,formats=
 
 }
 
-if(FALSE) { # most common basis of record for rjack outliers 
+# if(FALSE) { # most common basis of record for rjack outliers 
 
 library(dplyr)
 
 path = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/data/"
-d = data.table::fread(paste0(path,"rjack_outliers_export.tsv")) %>%
+d = parqr::parquet_readr(paste0(path,"rjack_outliers_export.parquet")) %>%
 filter(n_bioclim_outliers >= 5) %>%
 select(specieskey,basisofrecord,rounded_decimallatitude,rounded_decimallongitude) %>%
 unique() %>%
@@ -554,7 +529,7 @@ labs(caption=">5 climate surfaces flagged as outliers")
 save_dir = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/plots/"
 gbifapi::save_ggplot_formats(p,save_dir,"basisofrecord_barplot",height=4,width=6,formats=c("pdf","jpg","svg"))
 
-}
+# }
 
 if(FALSE) { # make make of rjack outlier locations 
 
@@ -594,7 +569,7 @@ library(dplyr)
 
 path = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/data/"
 
-d = data.table::fread(paste0(path,"rjack_outliers_export.tsv")) %>% 
+d = parqr::parquet_readr(paste0(path,"rjack_outliers_export.parquet")) %>%
 filter(n_bioclim_outliers >= 5) %>%
 group_by(datasetkey) %>% 
 summarise(outlier_count=n()) %>%
@@ -657,6 +632,7 @@ if(FALSE) { # combine cumfreq + raster plot
 
 library(raster)
 library(dplyr) # always dplyr after raster
+library(tibble)
 library(sp)
 library(purrr)
 
@@ -685,27 +661,28 @@ bio_data = tibble::tribble(~bio_var,~long_name,
 
 path = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/data/"
 
-dbscan_outliers = data.table::fread("C:/Users/ftw712/Desktop/gbif_geographic_outliers/data/dbscan_outliers/dbscan_outliers_export.tsv") 
+# dbscan_outliers = data.table::fread("C:/Users/ftw712/Desktop/gbif_geographic_outliers/data/dbscan_outliers/dbscan_outliers_export.tsv") 
+# rjack_outliers = data.table::fread(paste0(path,"rjack_outliers_export.tsv")) %>%
 
-# filter(familykey == 3925) %>%
-rjack_outliers = data.table::fread(paste0(path,"rjack_outliers_export.tsv")) %>%
-filter(orderkey == 640) %>%
+rjack_outliers = parqr::parquet_readr(paste0(path,"rjack_outliers_export.parquet")) %>%
+filter(familykey == 3925) %>%
 rename_at(vars(paste0("bio",1:19)), ~ paste0("outlier",1:19)) %>%
 select("gbifid","specieskey",contains("bio"),contains("outlier")) %>% 
+mutate(gbifid = as.character(gbifid)) %>% 
 filter(n_bioclim_outliers >= 5) %>% 
 glimpse()
 
 specieskey_with_outlier = rjack_outliers %>% 
 pull(specieskey) %>% 
 unique() %>% 
-nth(11)
+nth(15)
 
-specieskey_with_outlier = 5285635
+# specieskey_with_outlier = 5284989
 
 # get outliers ids 
-dbscan_outlier_gbifid = dbscan_outliers %>%
-filter(specieskey %in% !!specieskey_with_outlier) %>%
-pull(gbifid) 
+# dbscan_outlier_gbifid = dbscan_outliers %>%
+# filter(specieskey %in% !!specieskey_with_outlier) %>%
+# pull(gbifid) 
 
 rjack_outlier_gbifid = rjack_outliers %>%
 filter(specieskey %in% !!specieskey_with_outlier) %>%
@@ -715,11 +692,12 @@ pull(gbifid)
 extracted_table = "bioclim_pinaceae_export.tsv"
 # extracted_table = "bioclim_primates_export.tsv"
 # "bioclim_primates_export.tsv"
+# mutate(dbscan_outlier = gbifid %in% !!dbscan_outlier_gbifid) %>% 
 
 d = data.table::fread(paste0(path,extracted_table)) %>%
+mutate(gbifid = as.character(gbifid)) %>%
 filter(specieskey %in% specieskey_with_outlier) %>%
 mutate(rjack_outlier = gbifid %in% !!rjack_outlier_gbifid) %>% 
-mutate(dbscan_outlier = gbifid %in% !!dbscan_outlier_gbifid) %>% 
 merge(rjack_outliers,id="gbifid",all.x=TRUE) %>%
 arrange(-n_bioclim_outliers) %>% 
 glimpse()
@@ -739,7 +717,6 @@ rounded_decimallongitude,
 -n_bioclim_outliers,
 -decimallatitude_bioclim,
 -decimallongitude_bioclim,
--dbscan_outlier,
 -rjack_outlier) %>%
 tidyr::pivot_longer(cols=contains("bio"),names_to="bio_var",values_to="bio_value") %>%
 na.omit() %>% 
@@ -751,7 +728,6 @@ select(contains("outlier"),
 -n_bioclim_outliers,
 -decimallatitude_bioclim,
 -decimallongitude_bioclim,
--dbscan_outlier,
 -rjack_outlier) %>% 
 tidyr::pivot_longer(cols=contains("outlier"),names_to="outlier_var",values_to="outlier_value") %>%
 mutate(outlier_var = stringr::str_replace_all(outlier_var,"outlier","bio")) %>%
@@ -905,10 +881,10 @@ path = "C:/Users/ftw712/Desktop/gbif_reverse_jackknife/data/"
 
 # set up occurrence data points 
 rjack_outliers = data.table::fread(paste0(path,"rjack_outliers_export.tsv")) %>%
-filter(orderkey == 798) %>%
+filter(familykey == 3925) %>%
 rename_at(vars(paste0("bio",1:19)), ~ paste0("outlier",1:19)) %>%
 select("gbifid","specieskey",contains("bio"),contains("outlier"),-contains("comp")) 
-
+or
 specieskey_with_outlier = rjack_outliers %>% 
 pull(specieskey) %>% 
 unique() %>% 

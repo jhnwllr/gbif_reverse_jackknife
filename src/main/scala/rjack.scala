@@ -13,7 +13,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.functions.sqrt
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.SaveMode
-
+import sys.process._
 
 object rjack {
 
@@ -222,27 +222,32 @@ object rjack {
 	/////////////////////////////////////////
 	// save temp table outliers 
 	/////////////////////////////////////////
-	import org.apache.spark.sql.SaveMode
-	import sys.process._
+	// import org.apache.spark.sql.SaveMode
+	// import sys.process._
+	
+	outliers.write.parquet("rjack_outliers_temp.parquet")
 
-	val save_temp_name = "rjack_outliers_temp"
-
-	outliers.
-	write.format("csv").
-	option("sep", "\t").
-	option("header", "true").
-	mode(SaveMode.Overwrite).
-	save(save_temp_name)
+	// val parqDF = spark.read.parquet("people.parquet")
+	
+	// val save_temp_name = "rjack_outliers_temp"
+	
+	// outliers.
+	// write.format("csv").
+	// option("sep", "\t").
+	// option("header", "true").
+	// mode(SaveMode.Overwrite).
+	// save(save_temp_name)
 
 	//////////////////////////////////////////
 	// merge back with original data 
 	/////////////////////////////////////////
 
-	val df_outliers = spark.read.
-	option("sep", "\t").
-	option("header", "true").
-	option("inferSchema", "true").
-	csv(save_temp_name)
+	val df_outliers = spark.read.parquet("rjack_outliers_temp.parquet")
+	// val df_outliers = spark.read.
+	// option("sep", "\t").
+	// option("header", "true").
+	// option("inferSchema", "true").
+	// csv(save_temp_name)
 
 	// clean up and merge back with original data to get gbifids 
 	val df_bio_gbifid = df_original.join(df_bioclim, 
@@ -289,17 +294,30 @@ object rjack {
 	println(df_export.count())
 	
 	// save outliers /////
-	import org.apache.spark.sql.SaveMode
-	import sys.process._
+	// import org.apache.spark.sql.SaveMode
+	// import sys.process._
+	df_export.write.parquet("rjack_outliers_export.parquet")
 
-	val save_table_name = "rjack_outliers_export"
+	// val save_table_name = "rjack_outliers_export"
 
-	df_export.
-	write.format("csv").
-	option("sep", "\t").
-	option("header", "false").
-	mode(SaveMode.Overwrite).
-	save(save_table_name)
+	// df_export.
+	// write.format("csv").
+	// option("sep", "\t").
+	// option("header", "false").
+	// mode(SaveMode.Overwrite).
+	// save(save_table_name)
+	
+	// export and copy file to right location 
+	// (s"hdfs dfs -ls")!
+	// (s"rm " + save_table_name)!
+	// (s"hdfs dfs -getmerge /user/jwaller/"+ save_table_name + " " + save_table_name)!
+	// (s"head " + save_table_name)!
+	// val header = "1i " + "specieskey\tspecies_occ_count\tdatasetkey\tdataset_occ_count\tdecimallatitude\tdecimallongitude\tgbifid\tbasisofrecord\tkingdom\tclass\tkingdomkey\tclasskey\teventdate\tdatasetname\tdate"
+	// val header = "1i " + df_export.columns.toSeq.mkString("""\t""")
+	// Seq("sed","-i",header,save_table_name).!
+	// (s"rm /mnt/auto/misc/download.gbif.org/custom_download/jwaller/" + save_table_name)!
+	// (s"ls -lh /mnt/auto/misc/download.gbif.org/custom_download/jwaller/")!
+	// (s"cp /home/jwaller/" + save_table_name + " /mnt/auto/misc/download.gbif.org/custom_download/jwaller/" + save_table_name)!
 	
 	// scp -r /cygdrive/c/Users/ftw712/Desktop/gbif_reverse_jackknife/target/scala-2.11/gbif_reverse_jackknife_2.11-0.1.jar jwaller@c5gateway-vh.gbif.org:/home/jwaller/
 	// spark2-submit --num-executors 40 --executor-cores 5 --driver-memory 8g --driver-cores 4 --executor-memory 16g gbif_reverse_jackknife_2.11-0.1.jar

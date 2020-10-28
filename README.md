@@ -31,7 +31,7 @@ scp -r /cygdrive/c/Users/ftw712/Desktop/gbif_reverse_jackknife/target/scala-2.11
 spark2-submit --num-executors 40 --executor-cores 5 --driver-memory 8g --driver-cores 4 --executor-memory 16g gbif_reverse_jackknife_2.11-0.1.jar
 ```
 
-Output is a file in hdfs called **rjack_outliers_export**.
+Output is a parquet file in hdfs called **rjack_outliers_export.parquet**
 
 ## Plotted example
 
@@ -111,35 +111,29 @@ function (d)
 
 ## Working with results 
 
-Since only around 2M occurrences are flagged as outliers, it is easy to export locally. 
+Around 6M outliers are flagged, so it is possible to export locally. 
 
-In the end, a file is created in hdfs called `rjack_outliers_export`. 
+In the end, a file is created in hdfs called `rjack_outliers_export.parquet`. 
 
-```scala
-import sys.process._
-
-val save_table_name = "rjack_outliers_export"
-
-val df_export = spark.read.
-option("sep", "\t").
-option("header", "true").
-option("inferSchema", "true").
-csv(save_table_name)
-
-// export and copy file to right location 
-(s"hdfs dfs -ls")!
-(s"rm " + save_table_name)!
-(s"hdfs dfs -getmerge /user/jwaller/"+ save_table_name + " " + save_table_name)!
-(s"head " + save_table_name)!
-// val header = "1i " + "specieskey\tspecies_occ_count\tdatasetkey\tdataset_occ_count\tdecimallatitude\tdecimallongitude\tgbifid\tbasisofrecord\tkingdom\tclass\tkingdomkey\tclasskey\teventdate\tdatasetname\tdate"
-val header = "1i " + df_export.columns.toSeq.mkString("""\t""")
-Seq("sed","-i",header,save_table_name).!
-(s"rm /mnt/auto/misc/download.gbif.org/custom_download/jwaller/" + save_table_name)!
-(s"ls -lh /mnt/auto/misc/download.gbif.org/custom_download/jwaller/")!
-(s"cp /home/jwaller/" + save_table_name + " /mnt/auto/misc/download.gbif.org/custom_download/jwaller/" + save_table_name)!
+```shell
+rm -r  /mnt/auto/misc/download.gbif.org/custom_download/jwaller/rjack_outliers_export.parquet.zip
+hadoop fs -get /user/jwaller/rjack_outliers_export.parquet  /mnt/auto/misc/download.gbif.org/custom_download/jwaller/rjack_outliers_export.parquet
+cd /mnt/auto/misc/download.gbif.org/custom_download/jwaller/
+zip -r rjack_outliers_export.parquet.zip rjack_outliers_export.parquet
+rm -r  /mnt/auto/misc/download.gbif.org/custom_download/jwaller/rjack_outliers_export.parquet
 
 ```
 
+Read multi-part parquet into R. 
+
+```R 
+install.packages("arrow")
+devtools::install_github("jhnwllr/parqr")
+
+path = "C:/Users/ftw712/Desktop/"
+parqr::parquet_readr(paste0(path,"rjack_outliers_export.parquet")) 
+
+```
 
 ## References 
 
